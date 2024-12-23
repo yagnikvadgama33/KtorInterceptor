@@ -24,9 +24,6 @@ class MainViewModel(private val ktorClient: KtorClient) : ViewModel() {
                 val result = ktorClient.getMoviesData().body<String>()
                 _getResponse.value = result
                 Log.w("KtorClient", "VM: Decrypted Data: $result")
-            } catch (e: NoInternetException) {
-                Log.e("KtorClient", "No Internet: ${e.message}")
-                _getResponse.value = "No Internet: ${e.message}"
             } catch (e: Exception) {
                 Log.e("KtorClient", "VM: Error -> ${e.message}")
                 _getResponse.value = "Error: ${e.message}"
@@ -34,20 +31,14 @@ class MainViewModel(private val ktorClient: KtorClient) : ViewModel() {
         }
     }
 
-    fun makePostRequest() {
-        val formData =
-            mapOf("title" to "John Wick", "body" to "R rated with extremely action movie.")
-
+    fun makePostRequest(name: String, body: String) {
         viewModelScope.launch {
             try {
                 val result = ktorClient.postRequest(
-                    formData = formData
+                    formData = mapOf("title" to name, "body" to body)
                 )
                 _postResponse.value = result
                 Log.w("KtorClient", "VM: Decrypted Data: $result")
-            } catch (e: NoInternetException) {
-                Log.e("KtorClient", "No Internet: ${e.message}")
-                _postResponse.value = "No Internet: ${e.message}"
             } catch (e: Exception) {
                 Log.e("KtorClient", "VM: Error -> ${e.message}")
                 _postResponse.value = "Error: ${e.message}"

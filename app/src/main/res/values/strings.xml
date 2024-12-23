@@ -2,4 +2,13 @@
     <string name="app_name">KtorInterceptor</string>
     <string name="no_internet_connection">No internet connection.</string>
     <string name="title_activity_main_new">MainActivityNew</string>
+    <string name="please_connect_to_internet">Please Connect Internet</string>
+    <string name="internet_connected">Internet Connected</string>
+    <string name="fetch_data_get">Fetch Data (GET)</string>
+    <string name="get_response">GET Response:</string>
+    <string name="send_data_post">Send Data (POST)</string>
+    <string name="post_response">POST Response:</string>
+    <string name="enter_title_or_description">Enter title or description</string>
+    <string name="body">Body</string>
+    <string name="title">Title</string>
 </resources>

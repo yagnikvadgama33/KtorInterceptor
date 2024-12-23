@@ -33,10 +33,6 @@ class KtorClient(private val context: Context, private val secretKey: String) {
 
         engine {
             addInterceptor { chain ->
-                if (!isInternetAvailable(context)) {
-                    throw NoInternetException(context.getString(R.string.no_internet_connection))
-                }
-
                 val originalRequest = chain.request()
 
                 // Encrypt request body for methods like POST, PUT, etc.
