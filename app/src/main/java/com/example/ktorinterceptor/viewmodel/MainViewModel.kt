@@ -35,7 +35,7 @@ class MainViewModel(private val ktorClient: KtorClient) : ViewModel() {
     }
 
     fun makePostRequest() {
-        val formData = mapOf("title" to "John Abram", "body" to "description...")
+        val formData = mapOf("title" to "John Wick", "body" to "R rated with extremely action movie.")
 
         viewModelScope.launch {
             try {
