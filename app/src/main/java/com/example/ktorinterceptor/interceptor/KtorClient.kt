@@ -44,12 +44,13 @@ class KtorClient(private val context: Context, private val secretKey: String) {
 
                 val originalRequest = chain.request()
 
-                val encryptedBody = originalRequest.body?.toString()?.let { EncryptionUtils.encrypt(it, secretKey) }
+//                val encryptedBody = originalRequest.body?.toString()?.let { EncryptionUtils.encrypt(it, secretKey) }
 
-                Log.d("KtorClient", "Encrypted Response: $encryptedBody")
+//                Log.d("KtorClient", "Encrypted Response: $encryptedBody")
 
                 val request = originalRequest.newBuilder()
-                    .method(originalRequest.method, encryptedBody?.toRequestBody())
+//                    .method(originalRequest.method, encryptedBody?.toRequestBody())
+                    .method(originalRequest.method, originalRequest.body)
                     .build()
                 var response = chain.proceed(request)
                 var attempt = 0
@@ -63,13 +64,14 @@ class KtorClient(private val context: Context, private val secretKey: String) {
                 }
 
                 // Decrypt response
-                val decryptedResponseBody = response.body?.string()?.let { EncryptionUtils.decrypt(it, secretKey) }
+//                val decryptedResponseBody = response.body?.string()?.let { EncryptionUtils.decrypt(it, secretKey) }
 
-               Log.d("KtorClient", "Decrypted Response: ${decryptedResponseBody?.toResponseBody()}")
+//               Log.d("KtorClient", "Decrypted Response: ${decryptedResponseBody?.toResponseBody()}")
 
                 // Return modified response
                 response.newBuilder()
-                    .body(decryptedResponseBody?.toResponseBody())
+//                    .body(decryptedResponseBody?.toResponseBody())
+                    .body(response.body)
                     .build()
             }
         }
