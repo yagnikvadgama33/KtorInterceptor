@@ -3,6 +3,7 @@ package com.example.ktorinterceptor.interceptor
 import android.content.Context
 import android.util.Log
 import android.widget.Toast
+import com.example.ktorinterceptor.R
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.logging.LogLevel
@@ -14,6 +15,11 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 class KtorClient(private val context: Context) {
 
@@ -26,16 +32,18 @@ class KtorClient(private val context: Context) {
             addInterceptor { chain ->
                 val originalRequest = chain.request()
 
-                // Retry
+                // Retry logic
                 var attempt = 0
                 var response = chain.proceed(originalRequest)
                 val maxRetries = 3
-//                while (attempt < maxRetries && response.code in 201..503) {
                 while (attempt < maxRetries && response.code in 201..503) {
-                    Thread.sleep(3000L)
+                    attempt++
+                    notifyRetry(attempt) // Notify UI about the retry
+                    runBlocking {
+                        delay(3000L)
+                    }
                     response.close()
                     response = chain.proceed(originalRequest)
-                    attempt++
                     Log.d("KtorClient", "API Retrying... $attempt Times")
                 }
 
@@ -44,13 +52,14 @@ class KtorClient(private val context: Context) {
         }
     }
 
-    suspend fun getMoviesData(id:String): String {
+    suspend fun getMoviesData(id: String): String {
         val response = client.get("https://dummyjson.com/posts/$id")
         val responseBody = response.bodyAsText()
         var modifiedResponse = ""
 
-        if(response.status.value !in 201..503){
-            modifiedResponse = "{" + "status_code" + ":" + "${response.status.value} " + "," + responseBody + "}"
+        if (response.status.value !in 201..503) {
+            modifiedResponse =
+                "{" + "status_code" + ":" + "${response.status.value} " + "," + responseBody + "}"
             Log.d("KtorClient", "Modified Response: $modifiedResponse")
         }
 
@@ -77,6 +86,17 @@ class KtorClient(private val context: Context) {
         } catch (e: Exception) {
             e.printStackTrace()
             "Network Error: ${e.message}"
+        }
+    }
+
+    private fun notifyRetry(attempt: Int) {
+        CoroutineScope(Dispatchers.Main).launch {
+            Toast.makeText(
+                context,
+                context.getString(R.string.retrying_api_call_attempt, attempt.toString()),
+                Toast.LENGTH_SHORT
+            )
+                .show()
         }
     }
 }

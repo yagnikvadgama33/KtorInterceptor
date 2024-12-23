@@ -12,4 +12,5 @@
     <string name="body">Body</string>
     <string name="title">Title</string>
     <string name="enter_post_id">Enter Post ID</string>
+    <string name="retrying_api_call_attempt">Retrying API call… Attempt %1$s</string>
 </resources>
