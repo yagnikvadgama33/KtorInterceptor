@@ -38,7 +38,7 @@ import com.example.ktorinterceptor.R
 import com.example.ktorinterceptor.interceptor.KtorClient
 import com.example.ktorinterceptor.ui.theme.KtorInterceptorTheme
 import com.example.ktorinterceptor.utils.ConnectionState
-import com.example.ktorinterceptor.utils.EncryptionUtils
+import com.example.ktorinterceptor.utils.EncryptionUtils.generateSecretKey
 import com.example.ktorinterceptor.utils.connectivityState
 import com.example.ktorinterceptor.viewmodel.MainViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -48,7 +48,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val secretKey = EncryptionUtils.generateSecretKey(applicationContext)
+        val secretKey = generateSecretKey(applicationContext)
         val viewModel = MainViewModel(KtorClient(this, secretKey))
 
         enableEdgeToEdge()
