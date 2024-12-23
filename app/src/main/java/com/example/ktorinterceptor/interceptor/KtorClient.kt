@@ -56,14 +56,13 @@ class KtorClient(private val context: Context) {
         val response = client.get("https://dummyjson.com/posts/$id")
         val responseBody = response.bodyAsText()
         var modifiedResponse = ""
+        Log.d("KtorClient", "Original Response: $responseBody")
 
         if (response.status.value !in 201..503) {
             modifiedResponse =
                 "{" + "status_code" + ":" + "${response.status.value} " + "," + responseBody + "}"
             Log.d("KtorClient", "Modified Response: $modifiedResponse")
         }
-
-        Log.d("KtorClient", "Original Response: $responseBody")
 
         return modifiedResponse
     }

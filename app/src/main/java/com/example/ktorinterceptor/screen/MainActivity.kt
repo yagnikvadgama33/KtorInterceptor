@@ -5,35 +5,17 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
@@ -46,7 +28,6 @@ import com.example.ktorinterceptor.viewmodel.MainViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 class MainActivity : ComponentActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -72,27 +53,19 @@ class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalCoroutinesApi::class)
     @Composable
     fun ConnectivityStatus(snackbarHostState: SnackbarHostState) {
-        var isFirstTime = true
         val connection by connectivityState()
         val isConnected = connection === ConnectionState.Available
 
         LaunchedEffect(isConnected) {
-            when {
-                isConnected && !isFirstTime -> {
-                    snackbarHostState.showSnackbar(
-                        message = getString(R.string.internet_connected),
-                        duration = SnackbarDuration.Short
-                    )
-                    isFirstTime = false
-                }
-
-                !isConnected -> {
-                    snackbarHostState.showSnackbar(
-                        message = getString(R.string.please_connect_to_internet),
-                        duration = SnackbarDuration.Indefinite
-                    )
-                }
+            val message = if (isConnected) {
+                getString(R.string.internet_connected)
+            } else {
+                getString(R.string.please_connect_to_internet)
             }
+            snackbarHostState.showSnackbar(
+                message = message,
+                duration = if (isConnected) SnackbarDuration.Short else SnackbarDuration.Indefinite
+            )
         }
     }
 
@@ -103,37 +76,35 @@ class MainActivity : ComponentActivity() {
         viewModel: MainViewModel
     ) {
         val connection by connectivityState()
+        val isEnabled = connection == ConnectionState.Available
+
+        var id by remember { mutableStateOf(TextFieldValue("")) }
         var name by remember { mutableStateOf(TextFieldValue("")) }
         var body by remember { mutableStateOf(TextFieldValue("")) }
-        var id by remember { mutableStateOf(TextFieldValue("")) }
+        val keyboardController = LocalSoftwareKeyboardController.current
 
         Column(
             modifier = Modifier
                 .padding(innerPadding)
                 .padding(horizontal = 12.dp)
         ) {
-            //GET
-            Text(
-                text = stringResource(R.string.get_response),
-                style = MaterialTheme.typography.headlineMedium
-            )
 
-            TextField(
+            SectionHeader(title = stringResource(R.string.get_response))
+
+            Spacer(Modifier.height(12.dp))
+
+            CustomTextField(
                 value = id,
-                onValueChange = { newText ->
-                    id = newText
-                },
-                placeholder = {
-                    Text(stringResource(R.string.enter_post_id))
-                },
-                maxLines = 1,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp),
-                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                onValueChange = { id = it },
+                placeholder = stringResource(R.string.enter_post_id),
+                keyboardType = KeyboardType.Number,
+                isEnabled = isEnabled,
+                keyboardController = keyboardController
             )
+            Spacer(Modifier.height(12.dp))
 
-            Button(
+            CustomButton(
+                text = stringResource(R.string.fetch_data_get),
                 onClick = {
                     if (id.text.isBlank()) {
                         Toast.makeText(
@@ -145,13 +116,8 @@ class MainActivity : ComponentActivity() {
                         viewModel.fetchData(id.text.trim())
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                enabled = connection == ConnectionState.Available
-            ) {
-                Text(text = stringResource(R.string.fetch_data_get))
-            }
+                isEnabled = isEnabled
+            )
 
             Spacer(Modifier.height(12.dp))
 
@@ -166,49 +132,38 @@ class MainActivity : ComponentActivity() {
                     .padding(vertical = 18.dp)
             )
 
-            //POST
-            Text(
-                text = stringResource(R.string.post_response),
-                style = MaterialTheme.typography.headlineMedium
-            )
+            SectionHeader(title = stringResource(R.string.post_response))
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.padding(vertical = 12.dp)
             ) {
-                TextField(
+                CustomTextField(
                     value = name,
-                    onValueChange = { newText ->
-                        name = newText
-                    },
-                    placeholder = {
-                        Text(stringResource(R.string.title))
-                    },
-                    maxLines = 1,
+                    onValueChange = { name = it },
+                    placeholder = stringResource(R.string.title),
+                    isEnabled = isEnabled,
                     modifier = Modifier
-                        .fillMaxWidth()
                         .weight(0.5f)
-                        .padding(end = 3.dp)
+                        .padding(end = 3.dp),
+                    keyboardController = keyboardController
                 )
 
-                TextField(
+                CustomTextField(
                     value = body,
-                    onValueChange = { newText ->
-                        body = newText
-                    },
-                    maxLines = 1,
-                    placeholder = {
-                        Text(stringResource(R.string.body))
-                    },
+                    onValueChange = { body = it },
+                    placeholder = stringResource(R.string.body),
+                    isEnabled = isEnabled,
                     modifier = Modifier
-                        .fillMaxWidth()
                         .weight(0.5f)
-                        .padding(start = 3.dp)
+                        .padding(start = 3.dp),
+                    keyboardController = keyboardController
                 )
             }
-            Spacer(Modifier.height(12.dp))
-            Button(
+
+            CustomButton(
+                text = stringResource(R.string.send_data_post),
                 onClick = {
                     if (name.text.isBlank() && body.text.isBlank()) {
                         Toast.makeText(
@@ -223,13 +178,8 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 },
-                modifier = Modifier
-                    .padding(horizontal = 12.dp)
-                    .fillMaxWidth(),
-                enabled = connection == ConnectionState.Available
-            ) {
-                Text(text = stringResource(R.string.send_data_post))
-            }
+                isEnabled = isEnabled
+            )
 
             Spacer(Modifier.height(16.dp))
 
@@ -239,5 +189,59 @@ class MainActivity : ComponentActivity() {
             )
         }
     }
+
+    @Composable
+    fun SectionHeader(title: String) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineMedium
+        )
+    }
+
+    @Composable
+    fun CustomTextField(
+        value: TextFieldValue,
+        onValueChange: (TextFieldValue) -> Unit,
+        placeholder: String,
+        isEnabled: Boolean,
+        modifier: Modifier = Modifier,
+        keyboardType: KeyboardType = KeyboardType.Text,
+        keyboardController: SoftwareKeyboardController?
+    ) {
+        TextField(
+            value = value,
+            onValueChange = onValueChange,
+            placeholder = { Text(placeholder) },
+            maxLines = 1,
+            modifier = modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions.Default.copy(
+                keyboardType = keyboardType,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = { keyboardController?.hide() }
+            ),
+            enabled = isEnabled
+        )
+    }
+
+    @Composable
+    fun CustomButton(
+        text: String,
+        onClick: () -> Unit,
+        isEnabled: Boolean,
+        modifier: Modifier = Modifier
+            .padding(horizontal = 12.dp)
+            .fillMaxWidth()
+    ) {
+        Button(
+            onClick = onClick,
+            modifier = modifier,
+            enabled = isEnabled
+        ) {
+            Text(text = text)
+        }
+    }
 }
+
 
