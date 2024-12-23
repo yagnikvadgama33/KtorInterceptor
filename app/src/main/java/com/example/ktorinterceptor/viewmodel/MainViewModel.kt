@@ -17,10 +17,10 @@ class MainViewModel(private val ktorClient: KtorClient) :
     private val _postResponse = MutableStateFlow("")
     val postResponse: StateFlow<String> = _postResponse
 
-    fun fetchData() {
+    fun fetchData(id:String) {
         viewModelScope.launch {
             try {
-                val result = ktorClient.getMoviesData()
+                val result = ktorClient.getMoviesData(id)
                 _getResponse.value = result
                 Log.w("KtorClient", "VM: Decrypted Data: $result")
             } catch (e: Exception) {

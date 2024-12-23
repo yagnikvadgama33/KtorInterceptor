@@ -11,4 +11,5 @@
     <string name="enter_title_or_description">Enter title or description</string>
     <string name="body">Body</string>
     <string name="title">Title</string>
+    <string name="enter_post_id">Enter Post ID</string>
 </resources>

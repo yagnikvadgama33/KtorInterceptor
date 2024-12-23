@@ -30,36 +30,31 @@ class KtorClient(private val context: Context) {
                 var attempt = 0
                 var response = chain.proceed(originalRequest)
                 val maxRetries = 3
+//                while (attempt < maxRetries && response.code in 201..503) {
                 while (attempt < maxRetries && response.code in 201..503) {
-                    Thread.sleep(2000L)
+                    Thread.sleep(3000L)
+                    response.close()
                     response = chain.proceed(originalRequest)
                     attempt++
-                    Toast.makeText(context, "API Retrying...", Toast.LENGTH_SHORT).show()
+                    Log.d("KtorClient", "API Retrying... $attempt Times")
                 }
 
                 response
             }
         }
-
-//        HttpResponseValidator {
-//            validateResponse { response ->
-//                if (response.status.value !in 200..299) {
-//                    throw Exception("HTTP Error: ${response.status.value}")
-//                }
-//            }
-//            handleResponseExceptionWithRequest { cause, httpReq ->
-//                throw Exception("Network Error: ${httpReq.url} -> ${cause.localizedMessage}")
-//            }
-//        }
     }
 
-    suspend fun getMoviesData(): String {
-        val response = client.get("https://dummyjson.com/posts/1")
+    suspend fun getMoviesData(id:String): String {
+        val response = client.get("https://dummyjson.com/posts/$id")
         val responseBody = response.bodyAsText()
+        var modifiedResponse = ""
 
-        val modifiedResponse =
-            "{" + "status_code" + ":" + "${response.status.value} " + "," + responseBody + "}"
-        Log.d("KtorClient", "Modified Response: $modifiedResponse")
+        if(response.status.value !in 201..503){
+            modifiedResponse = "{" + "status_code" + ":" + "${response.status.value} " + "," + responseBody + "}"
+            Log.d("KtorClient", "Modified Response: $modifiedResponse")
+        }
+
+        Log.d("KtorClient", "Original Response: $responseBody")
 
         return modifiedResponse
     }
@@ -76,7 +71,8 @@ class KtorClient(private val context: Context) {
             }
 
             val responseBody = response.bodyAsText()
-            println("POST Response: $responseBody")
+            Log.d("KtorClient", "Response: $responseBody")
+
             responseBody
         } catch (e: Exception) {
             e.printStackTrace()

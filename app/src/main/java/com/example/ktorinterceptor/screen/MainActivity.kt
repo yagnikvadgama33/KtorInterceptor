@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -32,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.example.ktorinterceptor.R
@@ -102,6 +105,7 @@ class MainActivity : ComponentActivity() {
         val connection by connectivityState()
         var name by remember { mutableStateOf(TextFieldValue("")) }
         var body by remember { mutableStateOf(TextFieldValue("")) }
+        var id by remember { mutableStateOf(TextFieldValue("")) }
 
         Column(
             modifier = Modifier
@@ -109,21 +113,46 @@ class MainActivity : ComponentActivity() {
                 .padding(horizontal = 12.dp)
         ) {
             //GET
-            Row(
-                verticalAlignment = Alignment.CenterVertically
+            Text(
+                text = stringResource(R.string.get_response),
+                style = MaterialTheme.typography.headlineMedium
+            )
+
+            TextField(
+                value = id,
+                onValueChange = { newText ->
+                    id = newText
+                },
+                placeholder = {
+                    Text(stringResource(R.string.enter_post_id))
+                },
+                maxLines = 1,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+            )
+
+            Button(
+                onClick = {
+                    if (id.text.isBlank()) {
+                        Toast.makeText(
+                            this@MainActivity,
+                            getString(R.string.enter_post_id),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    } else {
+                        viewModel.fetchData(id.text.trim())
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                enabled = connection == ConnectionState.Available
             ) {
-                Button(
-                    onClick = { viewModel.fetchData() },
-                    modifier = Modifier.padding(end = 12.dp),
-                    enabled = connection == ConnectionState.Available
-                ) {
-                    Text(text = stringResource(R.string.fetch_data_get))
-                }
-                Text(
-                    text = stringResource(R.string.get_response),
-                    style = MaterialTheme.typography.headlineMedium
-                )
+                Text(text = stringResource(R.string.fetch_data_get))
             }
+
             Spacer(Modifier.height(12.dp))
 
             Text(
@@ -138,59 +167,69 @@ class MainActivity : ComponentActivity() {
             )
 
             //POST
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Button(
-                    onClick = {
-                        if (name.text.isBlank() && body.text.isBlank()) {
-                            Toast.makeText(
-                                this@MainActivity,
-                                getString(R.string.enter_title_or_description),
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        } else {
-                            viewModel.makePostRequest(
-                                name = name.text.trim(),
-                                body = body.text.trim()
-                            )
-                        }
+            Text(
+                text = stringResource(R.string.post_response),
+                style = MaterialTheme.typography.headlineMedium
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.padding(vertical = 12.dp)
+            ) {
+                TextField(
+                    value = name,
+                    onValueChange = { newText ->
+                        name = newText
                     },
-                    modifier = Modifier.padding(end = 12.dp),
-                    enabled = connection == ConnectionState.Available
-                ) {
-                    Text(text = stringResource(R.string.send_data_post))
-                }
-                Text(
-                    text = stringResource(R.string.post_response),
-                    style = MaterialTheme.typography.headlineMedium
+                    placeholder = {
+                        Text(stringResource(R.string.title))
+                    },
+                    maxLines = 1,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(0.5f)
+                        .padding(end = 3.dp)
+                )
+
+                TextField(
+                    value = body,
+                    onValueChange = { newText ->
+                        body = newText
+                    },
+                    maxLines = 1,
+                    placeholder = {
+                        Text(stringResource(R.string.body))
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(0.5f)
+                        .padding(start = 3.dp)
                 )
             }
             Spacer(Modifier.height(12.dp))
-
-            TextField(
-                value = name,
-                onValueChange = { newText ->
-                    name = newText
+            Button(
+                onClick = {
+                    if (name.text.isBlank() && body.text.isBlank()) {
+                        Toast.makeText(
+                            this@MainActivity,
+                            getString(R.string.enter_title_or_description),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    } else {
+                        viewModel.makePostRequest(
+                            name = name.text.trim(),
+                            body = body.text.trim()
+                        )
+                    }
                 },
-                placeholder = {
-                    Text(stringResource(R.string.title))
-                },
-                maxLines = 1,
                 modifier = Modifier
-                    .padding(vertical = 12.dp)
-                    .fillMaxWidth()
-            )
-
-            TextField(
-                value = body,
-                onValueChange = { newText ->
-                    body = newText
-                },
-                maxLines = 1,
-                placeholder = {
-                    Text(stringResource(R.string.body))
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
+                    .padding(horizontal = 12.dp)
+                    .fillMaxWidth(),
+                enabled = connection == ConnectionState.Available
+            ) {
+                Text(text = stringResource(R.string.send_data_post))
+            }
 
             Spacer(Modifier.height(16.dp))
 
