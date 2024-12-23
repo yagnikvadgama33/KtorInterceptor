@@ -1,13 +1,12 @@
 package com.example.ktorinterceptor.interceptor
-
 import android.content.Context
 import android.util.Log
 import com.example.ktorinterceptor.R
 import com.example.ktorinterceptor.utils.EncryptionUtils
 import com.example.ktorinterceptor.utils.NoInternetException
 import com.example.ktorinterceptor.utils.isInternetAvailable
-import io.ktor.client.*
-import io.ktor.client.engine.okhttp.*
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
@@ -20,12 +19,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.Parameters
 import io.ktor.http.contentType
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import io.ktor.http.formUrlEncode
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody.Companion.toResponseBody
 
@@ -44,33 +38,50 @@ class KtorClient(private val context: Context, private val secretKey: String) {
 
                 val originalRequest = chain.request()
 
-//                val encryptedBody = originalRequest.body?.toString()?.let { EncryptionUtils.encrypt(it, secretKey) }
+                // Encrypt request body for methods like POST, PUT, etc.
+//                val encryptedBody = if (originalRequest.method.equals(io.ktor.http.HttpMethod.Get)) {
+//                    val bodyString = originalRequest.body?.let {
+//                        // Assuming the body is JSON or string, convert accordingly if not
+//                        it.toString() // Modify this if the body needs to be serialized
+//                    } ?: ""
+//                    EncryptionUtils.encrypt(bodyString, secretKey)
+//                } else {
+//                    null
+//                }
+//
+//                Log.d("KtorClient", "Encrypted Request: $encryptedBody")
 
-//                Log.d("KtorClient", "Encrypted Response: $encryptedBody")
+                val request =
+//                    if (encryptedBody != null) {
+                    originalRequest.newBuilder()
+                        .method(originalRequest.method, originalRequest.body)
+                        .build()
+//                } else {
+//                    originalRequest
+//                }
 
-                val request = originalRequest.newBuilder()
-//                    .method(originalRequest.method, encryptedBody?.toRequestBody())
-                    .method(originalRequest.method, originalRequest.body)
-                    .build()
-                var response = chain.proceed(request)
+                // Retry logic for response (synchronous retry without coroutines)
                 var attempt = 0
+                var response = chain.proceed(request)
                 val maxRetries = 3
-                while (attempt < maxRetries && !response.isSuccessful && response.code in listOf(500, 503)) {
-                    CoroutineScope(Dispatchers.IO).launch{
-                        delay(2000L) // Delay between retries
-                        response = chain.proceed(request)
-                        attempt++
-                    }
+                while (attempt < maxRetries && response.code in 500..599) {
+                    Thread.sleep(2000L) // Delay between retries
+                    response = chain.proceed(request)
+                    attempt++
                 }
 
-                // Decrypt response
-//                val decryptedResponseBody = response.body?.string()?.let { EncryptionUtils.decrypt(it, secretKey) }
+                // Decrypt response body if it's encrypted
+//                val decryptedResponseBody = response.body?.let { body ->
+//                    val bodyString = body.string()
+//                    // Assuming the body is encrypted, decrypt it
+//                    val decrypted = EncryptionUtils.decrypt(bodyString, secretKey)
+//                    decrypted
+//                }
+//
+//                Log.d("KtorClient", "Decrypted Response: $decryptedResponseBody")
 
-//               Log.d("KtorClient", "Decrypted Response: ${decryptedResponseBody?.toResponseBody()}")
-
-                // Return modified response
+                // Return modified response with decrypted body
                 response.newBuilder()
-//                    .body(decryptedResponseBody?.toResponseBody())
                     .body(response.body)
                     .build()
             }
@@ -82,7 +93,7 @@ class KtorClient(private val context: Context, private val secretKey: String) {
                     throw Exception("HTTP Error: ${response.status.value}")
                 }
             }
-            handleResponseExceptionWithRequest { cause,httpReq ->
+            handleResponseExceptionWithRequest { cause, httpReq ->
                 throw Exception("Network Error: ${httpReq.url} -> ${cause.localizedMessage}")
             }
         }
@@ -101,14 +112,13 @@ class KtorClient(private val context: Context, private val secretKey: String) {
             println("Request URL: $url")
             println("Request Body: $formData")
 
-            // Send the POST request with form-data
-            val response: HttpResponse = client.post(url) {
+            // Convert the Map to List of Pair
+            val formDataList = formData.map { it.toPair() }
+
+            // Use formUrlEncode to correctly serialize the form data
+            val response: HttpResponse = client.put(url) {
                 contentType(ContentType.Application.FormUrlEncoded)
-                setBody(Parameters.build {
-                    formData.forEach { (key, value) ->
-                        append(key, value)
-                    }
-                })
+                setBody(formDataList.formUrlEncode())  // Use the formUrlEncode method to serialize the body
             }
 
             // Log and return the response
@@ -120,5 +130,7 @@ class KtorClient(private val context: Context, private val secretKey: String) {
             "Network Error: ${e.message}"
         }
     }
+
 }
+
 
