@@ -20,6 +20,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
 
 class KtorClient(private val context: Context) {
 
@@ -28,7 +30,7 @@ class KtorClient(private val context: Context) {
             level = LogLevel.ALL
         }
 
-        engine {
+       /* engine {
             addInterceptor { chain ->
                 val originalRequest = chain.request()
 
@@ -49,22 +51,48 @@ class KtorClient(private val context: Context) {
 
                 response
             }
+        }*/
+
+        engine {
+            addInterceptor { chain ->
+                val originalRequest = chain.request()
+
+                // Retry logic
+                var attempt = 0
+                var response = chain.proceed(originalRequest)
+                val maxRetries = 3
+                while (attempt < maxRetries && response.code in 201..503) {
+                    attempt++
+                    notifyRetry(attempt) // Notify UI about the retry
+                    runBlocking {
+                        delay(3000L)
+                    }
+                    response.close()
+                    response = chain.proceed(originalRequest)
+                    Log.d("KtorClient", "API Retrying... $attempt Times")
+                }
+
+                // Modify the response body
+                if (response.isSuccessful) {
+                    val originalBody = response.body?.string() ?: ""
+                    val modifiedBody =
+                        "{" + "\"status_code\"" + ":" + "${response.code} " + "," + originalBody + "}"
+
+                    Log.d("KtorClient", "Modified Response: $modifiedBody")
+
+                    // Create a new response with the modified body
+                    response.newBuilder()
+                        .body(modifiedBody.toResponseBody(response.body?.contentType()))
+                        .build()
+                } else {
+                    response
+                }
+            }
         }
     }
 
     suspend fun getMoviesData(id: String): String {
-        val response = client.get("https://dummyjson.com/posts/$id")
-        val responseBody = response.bodyAsText()
-        var modifiedResponse = ""
-        Log.d("KtorClient", "Original Response: $responseBody")
-
-        if (response.status.value !in 201..503) {
-            modifiedResponse =
-                "{" + "status_code" + ":" + "${response.status.value} " + "," + responseBody + "}"
-            Log.d("KtorClient", "Modified Response: $modifiedResponse")
-        }
-
-        return modifiedResponse
+        return client.get("https://dummyjson.com/posts/$id").bodyAsText()
     }
 
     suspend fun postRequest(
@@ -94,8 +122,7 @@ class KtorClient(private val context: Context) {
                 context,
                 context.getString(R.string.retrying_api_call_attempt, attempt.toString()),
                 Toast.LENGTH_SHORT
-            )
-                .show()
+            ).show()
         }
     }
 }
