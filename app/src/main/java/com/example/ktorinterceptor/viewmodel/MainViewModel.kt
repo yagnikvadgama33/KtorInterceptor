@@ -35,12 +35,12 @@ class MainViewModel(private val ktorClient: KtorClient) : ViewModel() {
     }
 
     fun makePostRequest() {
-        val formData = mapOf("title" to "John Wick", "body" to "R rated with extremely action movie.")
+        val formData =
+            mapOf("title" to "John Wick", "body" to "R rated with extremely action movie.")
 
         viewModelScope.launch {
             try {
                 val result = ktorClient.postRequest(
-                    url = "https://dummyjson.com/posts/1",
                     formData = formData
                 )
                 _postResponse.value = result

@@ -1,4 +1,5 @@
 package com.example.ktorinterceptor.interceptor
+
 import android.content.Context
 import android.util.Log
 import com.example.ktorinterceptor.R
@@ -99,29 +100,21 @@ class KtorClient(private val context: Context, private val secretKey: String) {
         }
     }
 
-    // Example API call
     suspend fun getMoviesData(): HttpResponse {
         return client.get("https://dummyjson.com/posts/1")
     }
 
     suspend fun postRequest(
-        url: String,
         formData: Map<String, String>
     ): String {
         return try {
-            println("Request URL: $url")
-            println("Request Body: $formData")
-
-            // Convert the Map to List of Pair
             val formDataList = formData.map { it.toPair() }
 
-            // Use formUrlEncode to correctly serialize the form data
-            val response: HttpResponse = client.put(url) {
+            val response: HttpResponse = client.put("https://dummyjson.com/posts/1") {
                 contentType(ContentType.Application.FormUrlEncoded)
-                setBody(formDataList.formUrlEncode())  // Use the formUrlEncode method to serialize the body
+                setBody(formDataList.formUrlEncode())
             }
 
-            // Log and return the response
             val responseBody = response.bodyAsText()
             println("Response: $responseBody")
             responseBody
