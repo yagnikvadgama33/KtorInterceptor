@@ -30,8 +30,6 @@ import com.example.ktorinterceptor.viewmodel.MainViewModel
 
 class MainActivity : ComponentActivity() {
 
-    var isForPost = false
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -39,6 +37,7 @@ class MainActivity : ComponentActivity() {
         val viewModel = MainViewModel(KtorClient(this, secretKey))
 
         enableEdgeToEdge()
+
         setContent {
             KtorInterceptorTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
