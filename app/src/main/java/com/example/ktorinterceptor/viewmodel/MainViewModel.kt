@@ -22,7 +22,7 @@ class MainViewModel(private val ktorClient: KtorClient) :
             try {
                 val result = ktorClient.getMoviesData(id)
                 _getResponse.value = result
-                Log.w("KtorClient", "VM: Decrypted Data: $result")
+                Log.w("KtorClient",  "GET Response: $result")
             } catch (e: Exception) {
                 Log.e("KtorClient", "VM: Error -> ${e.message}")
                 _getResponse.value = "Error: ${e.message}"
@@ -37,7 +37,7 @@ class MainViewModel(private val ktorClient: KtorClient) :
                     formData = mapOf("title" to name, "body" to body)
                 )
                 _postResponse.value = result
-
+                Log.w("KtorClient",  "POST Response: $result")
             } catch (e: Exception) {
                 Log.e("KtorClient", "VM: Error -> ${e.message}")
                 _postResponse.value = "Error: ${e.message}"

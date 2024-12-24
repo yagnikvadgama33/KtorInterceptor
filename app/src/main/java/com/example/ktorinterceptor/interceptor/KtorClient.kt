@@ -1,9 +1,11 @@
 package com.example.ktorinterceptor.interceptor
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.util.Log
 import android.widget.Toast
 import com.example.ktorinterceptor.R
+import com.example.ktorinterceptor.utils.formUrlEncode
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.logging.LogLevel
@@ -20,38 +22,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import okhttp3.Response
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody.Companion.toResponseBody
 
 class KtorClient(private val context: Context) {
+
+    private val sharedPreferences: SharedPreferences = context.getSharedPreferences("api_prefs", Context.MODE_PRIVATE)
 
     private val client = HttpClient(OkHttp) {
         install(Logging) {
             level = LogLevel.ALL
         }
-
-       /* engine {
-            addInterceptor { chain ->
-                val originalRequest = chain.request()
-
-                // Retry logic
-                var attempt = 0
-                var response = chain.proceed(originalRequest)
-                val maxRetries = 3
-                while (attempt < maxRetries && response.code in 201..503) {
-                    attempt++
-                    notifyRetry(attempt) // Notify UI about the retry
-                    runBlocking {
-                        delay(3000L)
-                    }
-                    response.close()
-                    response = chain.proceed(originalRequest)
-                    Log.d("KtorClient", "API Retrying... $attempt Times")
-                }
-
-                response
-            }
-        }*/
 
         engine {
             addInterceptor { chain ->
@@ -63,30 +45,41 @@ class KtorClient(private val context: Context) {
                 val maxRetries = 3
                 while (attempt < maxRetries && response.code in 201..503) {
                     attempt++
-                    notifyRetry(attempt) // Notify UI about the retry
+                    notifyRetry(attempt)
                     runBlocking {
                         delay(3000L)
                     }
                     response.close()
                     response = chain.proceed(originalRequest)
-                    Log.d("KtorClient", "API Retrying... $attempt Times")
                 }
 
-                // Modify the response body
-                if (response.isSuccessful) {
-                    val originalBody = response.body?.string() ?: ""
-                    val modifiedBody =
-                        "{" + "\"status_code\"" + ":" + "${response.code} " + "," + originalBody + "}"
+                // Save GET response data
+                if (originalRequest.method == "GET" && response.isSuccessful) {
+                    val responseBody = response.body?.string() ?: ""
+                    val modifiedBody = "{\"status_code\":${response.code},$responseBody}"
+                    sharedPreferences.edit().putString("get_response_data", modifiedBody).apply()
+                    Log.d("KtorClient", "Saved GET Response Data: $modifiedBody")
 
-                    Log.d("KtorClient", "Modified Response: $modifiedBody")
-
-                    // Create a new response with the modified body
-                    response.newBuilder()
+                    response = response.newBuilder()
                         .body(modifiedBody.toResponseBody(response.body?.contentType()))
                         .build()
-                } else {
-                    response
                 }
+
+                // Use data for POST
+                if (originalRequest.method == "POST") {
+                    val savedData = sharedPreferences.getString("get_response_data", "") ?: ""
+                    val modifiedData = savedData.replace("\"status_code\":\\d+,?", "")
+                    Log.d("KtorClient", "Using Saved Data for POST: $modifiedData")
+
+                    val mediaType = originalRequest.body?.contentType()?.toString() ?: "application/json"
+                    val requestBody = modifiedData.toRequestBody(mediaType.toMediaTypeOrNull())
+                    val newRequest = originalRequest.newBuilder()
+                        .post(requestBody)
+                        .build()
+
+                    response = chain.proceed(newRequest)
+                }
+                response
             }
         }
     }
@@ -99,11 +92,9 @@ class KtorClient(private val context: Context) {
         formData: Map<String, String>
     ): String {
         return try {
-            val filteredFormData = formData.filterKeys { it != "status_code" }
-
             val response: HttpResponse = client.put("https://dummyjson.com/posts/1") {
                 contentType(ContentType.Application.FormUrlEncoded)
-                setBody(filteredFormData.formUrlEncode())
+                setBody(formData.formUrlEncode())
             }
 
             val responseBody = response.bodyAsText()
@@ -124,13 +115,6 @@ class KtorClient(private val context: Context) {
                 Toast.LENGTH_SHORT
             ).show()
         }
+        Log.d("KtorClient", "API Retrying... $attempt Times")
     }
 }
-
-fun Map<String, String>.formUrlEncode(): String {
-    return this.entries.joinToString("&") { (key, value) ->
-        "${key.urlEncode()}=${value.urlEncode()}"
-    }
-}
-
-fun String.urlEncode(): String = java.net.URLEncoder.encode(this, "UTF-8")
