@@ -33,7 +33,7 @@ class MainViewModel(private val ktorClient: KtorClient) :
     fun makePostRequest(name: String, body: String) {
         viewModelScope.launch {
             try {
-                val result = ktorClient.postRequest(
+                val result = ktorClient.putRequest(
                     formData = mapOf("title" to name, "body" to body)
                 )
                 _postResponse.value = result

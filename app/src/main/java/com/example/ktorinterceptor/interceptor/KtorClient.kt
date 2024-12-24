@@ -25,6 +25,8 @@ import kotlinx.coroutines.runBlocking
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody.Companion.toResponseBody
+import org.json.JSONException
+import org.json.JSONObject
 
 class KtorClient(private val context: Context) {
 
@@ -56,28 +58,62 @@ class KtorClient(private val context: Context) {
                 // Save GET response data
                 if (originalRequest.method == "GET" && response.isSuccessful) {
                     val responseBody = response.body?.string() ?: ""
-                    val modifiedBody = "{\"status_code\":${response.code},$responseBody}"
-                    sharedPreferences.edit().putString("get_response_data", modifiedBody).apply()
-                    Log.d("KtorClient", "Saved GET Response Data: $modifiedBody")
+                    try {
+                        JSONObject(responseBody)
+                        val modifiedBody = """{"status_code": ${response.code},"data": $responseBody}""".trimIndent()
 
-                    response = response.newBuilder()
-                        .body(modifiedBody.toResponseBody(response.body?.contentType()))
-                        .build()
+                        sharedPreferences.edit().putString("get_response_data", modifiedBody).apply()
+
+                        response = response.newBuilder()
+                            .body(modifiedBody.toResponseBody(response.body?.contentType()))
+                            .build()
+                    } catch (e: Exception) {
+                        Log.e("KtorClient", "Invalid JSON in GET response: ${e.message}", e)
+                    }
                 }
 
-                // Use data for POST
-                if (originalRequest.method == "POST") {
+                // Use data for PUT
+                if (originalRequest.method == "PUT") {
                     val savedData = sharedPreferences.getString("get_response_data", "") ?: ""
-                    val modifiedData = savedData.replace("\"status_code\":\\d+,?", "")
-                    Log.d("KtorClient", "Using Saved Data for POST: $modifiedData")
 
-                    val mediaType = originalRequest.body?.contentType()?.toString() ?: "application/json"
-                    val requestBody = modifiedData.toRequestBody(mediaType.toMediaTypeOrNull())
-                    val newRequest = originalRequest.newBuilder()
-                        .post(requestBody)
-                        .build()
+                    try {
+                        val removeJsonData = savedData.replace("\"status_code\":\\d+,?", "").trim()
 
-                    response = chain.proceed(newRequest)
+                        val jsonData = JSONObject(removeJsonData)
+                        val data = jsonData.optJSONObject("data")
+
+                        val buffer = okio.Buffer()
+                        originalRequest.body?.writeTo(buffer)
+                        val userProvidedData = buffer.readUtf8()
+
+                        val userData = JSONObject(userProvidedData)
+                        val userTitle = userData.optString("title", "")
+                        val userBody = userData.optString("body", "")
+
+                        if (userTitle.isNotEmpty()) {
+                            data?.put("title", userTitle)
+                        }
+                        if (userBody.isNotEmpty()) {
+                            data?.put("body", userBody)
+                        }
+
+                        // Update JSON
+                        jsonData.put("data", data)
+                        val modifiedBody = jsonData.toString()
+
+                        val mediaType = originalRequest.body?.contentType()?.toString() ?: "application/json"
+                        val requestBody = modifiedBody.toRequestBody(mediaType.toMediaTypeOrNull())
+                        val newRequest = originalRequest.newBuilder()
+                            .put(requestBody)
+                            .build()
+
+                        response.close()
+                        response = chain.proceed(newRequest)
+                    } catch (e: JSONException) {
+                        Log.e("KtorClient", "Error JSON: ${e.message}", e)
+                    } catch (e: Exception) {
+                        Log.e("KtorClient", "Error: ${e.message}", e)
+                    }
                 }
                 response
             }
@@ -88,7 +124,7 @@ class KtorClient(private val context: Context) {
         return client.get("https://dummyjson.com/posts/$id").bodyAsText()
     }
 
-    suspend fun postRequest(
+    suspend fun putRequest(
         formData: Map<String, String>
     ): String {
         return try {
@@ -98,7 +134,7 @@ class KtorClient(private val context: Context) {
             }
 
             val responseBody = response.bodyAsText()
-            Log.d("KtorClient", "Response: $responseBody")
+//            Log.d("KtorClient", "Response: $responseBody")
 
             responseBody
         } catch (e: Exception) {
@@ -118,3 +154,4 @@ class KtorClient(private val context: Context) {
         Log.d("KtorClient", "API Retrying... $attempt Times")
     }
 }
+
