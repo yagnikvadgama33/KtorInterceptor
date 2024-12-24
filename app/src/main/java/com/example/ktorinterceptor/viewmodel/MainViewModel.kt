@@ -22,11 +22,16 @@ class MainViewModel(private val ktorClient: KtorClient) :
     var name = mutableStateOf<String?>(null)
     var body = mutableStateOf<String?>(null)
 
+    var isGetApiCalled = mutableStateOf(false)
+    var isPostApiCalled = mutableStateOf(false)
+
     fun fetchData(id: String?) {
         viewModelScope.launch {
             try {
-                val result = ktorClient.getMoviesData(id!!)
-                _getResponse.value = result
+                val result = ktorClient.getMoviesData(id!!, {
+                    _getResponse.value = it
+                })
+//                _getResponse.value = result
                 Log.w("KtorClient", "GET Response: $result")
             } catch (e: Exception) {
                 Log.e("KtorClient", "VM: Error -> ${e.message}")
@@ -38,8 +43,11 @@ class MainViewModel(private val ktorClient: KtorClient) :
     fun makePostRequest(name: String?, body: String?) {
         viewModelScope.launch {
             try {
-                val result = ktorClient.putRequest(formData = mapOf("title" to name!!, "body" to body!!))
-                _postResponse.value = result
+                val result =
+                    ktorClient.putRequest(formData = mapOf("title" to name!!, "body" to body!!), {
+                        _postResponse.value = it
+                    })
+//                _postResponse.value = result
                 Log.w("KtorClient", "POST Response: $result")
             } catch (e: Exception) {
                 Log.e("KtorClient", "VM: Error -> ${e.message}")
@@ -52,7 +60,17 @@ class MainViewModel(private val ktorClient: KtorClient) :
         ktorClient.registerNetworkCallback(
             id = id.value,
             title = name.value,
-            body = body.value
+            body = body.value, {
+
+                if (isGetApiCalled.value) {
+                    _getResponse.value = it
+                    isGetApiCalled.value = false
+                }
+                if (isPostApiCalled.value) {
+                    _postResponse.value = it
+                    isPostApiCalled.value = false
+                }
+            }
         )
     }
 }

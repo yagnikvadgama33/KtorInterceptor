@@ -123,6 +123,7 @@ class MainActivity : ComponentActivity() {
                         else -> {
 //                            if (connectionsAvailable) {
                             viewModel.fetchData(id.text.trim())
+                            viewModel.isGetApiCalled.value = true
 //                            } else {
 //                                viewModel.isGetApiCalled.value = true
 //                            }
@@ -198,6 +199,7 @@ class MainActivity : ComponentActivity() {
                                 name = name.text.trim(),
                                 body = body.text.trim()
                             )
+                            viewModel.isPostApiCalled.value = true
                         }
                     }
                 },
