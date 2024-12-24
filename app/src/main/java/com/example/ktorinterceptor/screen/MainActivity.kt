@@ -43,7 +43,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     snackbarHost = { SnackbarHost(snackbarHostState) }
                 ) { innerPadding ->
-                    ConnectivityStatus(snackbarHostState)
+                    ConnectivityStatus(snackbarHostState, viewModel)
                     MainUI(innerPadding, viewModel = viewModel)
                 }
             }
@@ -52,11 +52,12 @@ class MainActivity : ComponentActivity() {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Composable
-    fun ConnectivityStatus(snackbarHostState: SnackbarHostState) {
+    fun ConnectivityStatus(snackbarHostState: SnackbarHostState, viewModel: MainViewModel) {
         val connection by connectivityState()
         val isConnected = connection === ConnectionState.Available
 
         LaunchedEffect(isConnected) {
+            viewModel.retryApiLater()
             val message = if (isConnected) {
                 getString(R.string.internet_connected)
             } else {
@@ -76,7 +77,8 @@ class MainActivity : ComponentActivity() {
         viewModel: MainViewModel
     ) {
         val connection by connectivityState()
-        val isEnabled = connection == ConnectionState.Available
+        val connectionsAvailable = connection == ConnectionState.Available
+        val isEnabled = true
 
         var id by remember { mutableStateOf(TextFieldValue("")) }
         var name by remember { mutableStateOf(TextFieldValue("")) }
@@ -95,7 +97,10 @@ class MainActivity : ComponentActivity() {
 
             CustomTextField(
                 value = id,
-                onValueChange = { id = it },
+                onValueChange = {
+                    viewModel.id.value = it.text.trim()
+                    id = it
+                },
                 placeholder = stringResource(R.string.enter_post_id),
                 keyboardType = KeyboardType.Number,
                 isEnabled = isEnabled,
@@ -106,14 +111,22 @@ class MainActivity : ComponentActivity() {
             CustomButton(
                 text = stringResource(R.string.fetch_data_get),
                 onClick = {
-                    if (id.text.isBlank()) {
-                        Toast.makeText(
-                            this@MainActivity,
-                            getString(R.string.enter_post_id),
-                            Toast.LENGTH_LONG
-                        ).show()
-                    } else {
-                        viewModel.fetchData(id.text.trim())
+                    when {
+                        id.text.isBlank() -> {
+                            Toast.makeText(
+                                this@MainActivity,
+                                getString(R.string.enter_post_id),
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+
+                        else -> {
+//                            if (connectionsAvailable) {
+                            viewModel.fetchData(id.text.trim())
+//                            } else {
+//                                viewModel.isGetApiCalled.value = true
+//                            }
+                        }
                     }
                 },
                 isEnabled = isEnabled
@@ -141,7 +154,10 @@ class MainActivity : ComponentActivity() {
             ) {
                 CustomTextField(
                     value = name,
-                    onValueChange = { name = it },
+                    onValueChange = {
+                        viewModel.name.value = it.text.trim()
+                        name = it
+                    },
                     placeholder = stringResource(R.string.title),
                     isEnabled = isEnabled,
                     modifier = Modifier
@@ -152,7 +168,10 @@ class MainActivity : ComponentActivity() {
 
                 CustomTextField(
                     value = body,
-                    onValueChange = { body = it },
+                    onValueChange = {
+                        viewModel.body.value = it.text.trim()
+                        body = it
+                    },
                     placeholder = stringResource(R.string.body),
                     isEnabled = isEnabled,
                     modifier = Modifier
@@ -165,17 +184,21 @@ class MainActivity : ComponentActivity() {
             CustomButton(
                 text = stringResource(R.string.send_data_post),
                 onClick = {
-                    if (name.text.isBlank() && body.text.isBlank()) {
-                        Toast.makeText(
-                            this@MainActivity,
-                            getString(R.string.enter_title_or_description),
-                            Toast.LENGTH_LONG
-                        ).show()
-                    } else {
-                        viewModel.makePostRequest(
-                            name = name.text.trim(),
-                            body = body.text.trim()
-                        )
+                    when {
+                        name.text.isBlank() && body.text.isBlank() -> {
+                            Toast.makeText(
+                                this@MainActivity,
+                                getString(R.string.enter_title_or_description),
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+
+                        else -> {
+                            viewModel.makePostRequest(
+                                name = name.text.trim(),
+                                body = body.text.trim()
+                            )
+                        }
                     }
                 },
                 isEnabled = isEnabled
@@ -242,6 +265,24 @@ class MainActivity : ComponentActivity() {
             Text(text = text)
         }
     }
+
+//    private fun checkForRetryApi(viewModel: MainViewModel) {
+//        when {
+//            viewModel.isGetApiCalled.value -> {
+//                viewModel.retryApiLater(id = viewModel.id.value)
+//                viewModel.isGetApiCalled.value = false
+//            }
+//
+//            viewModel.isPutApiCalled.value -> {
+//
+//                viewModel.retryApiLater(
+//                    title = viewModel.name.value,
+//                    body = viewModel.body.value
+//                )
+//                viewModel.isPutApiCalled.value = false
+//            }
+//        }
+//    }
 }
 
 
