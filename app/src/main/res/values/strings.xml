@@ -6,11 +6,12 @@
     <string name="internet_connected">Internet Connected</string>
     <string name="fetch_data_get">Fetch Data (GET)</string>
     <string name="get_response">GET Response:</string>
-    <string name="send_data_post">Send Data (POST)</string>
-    <string name="post_response">POST Response:</string>
+    <string name="send_data_post">Send Data (PUT)</string>
+    <string name="post_response">PUT Response:</string>
     <string name="enter_title_or_description">Enter title or description</string>
     <string name="body">Body</string>
     <string name="title">Title</string>
     <string name="enter_post_id">Enter Post ID</string>
     <string name="retrying_api_call_attempt">Retrying API call… Attempt %1$s</string>
+    <string name="no_internet_msg">Your request will proceed when when internet connection available</string>
 </resources>

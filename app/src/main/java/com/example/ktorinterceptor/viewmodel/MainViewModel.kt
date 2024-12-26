@@ -2,6 +2,7 @@ package com.example.ktorinterceptor.viewmodel
 
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.ktorinterceptor.interceptor.KtorClient
@@ -9,8 +10,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class MainViewModel(private val ktorClient: KtorClient) :
-    ViewModel() {
+class MainViewModel(private val ktorClient: KtorClient) : ViewModel()
+{
 
     private val _getResponse = MutableStateFlow("")
     val getResponse: StateFlow<String> = _getResponse
@@ -18,21 +19,24 @@ class MainViewModel(private val ktorClient: KtorClient) :
     private val _postResponse = MutableStateFlow("")
     val postResponse: StateFlow<String> = _postResponse
 
-    var id = mutableStateOf<String?>(null)
-    var name = mutableStateOf<String?>(null)
-    var body = mutableStateOf<String?>(null)
+    var vmId = mutableStateOf<String?>(null)
+    var vmName = mutableStateOf<String?>(null)
+    var vmBody = mutableStateOf<String?>(null)
+
+     val vmTitle = MutableLiveData("")
+
+     val vmB = MutableLiveData("")
 
     var isGetApiCalled = mutableStateOf(false)
     var isPostApiCalled = mutableStateOf(false)
 
-    fun fetchData(id: String?) {
+    fun fetchData() {
         viewModelScope.launch {
             try {
-                val result = ktorClient.getMoviesData(id!!, {
+                ktorClient.getPostData {
+                    Log.d("KtorClient", "After Modification : $it")
                     _getResponse.value = it
-                })
-//                _getResponse.value = result
-                Log.w("KtorClient", "GET Response: $result")
+                }
             } catch (e: Exception) {
                 Log.e("KtorClient", "VM: Error -> ${e.message}")
                 _getResponse.value = "Error: ${e.message}"
@@ -40,15 +44,13 @@ class MainViewModel(private val ktorClient: KtorClient) :
         }
     }
 
-    fun makePostRequest(name: String?, body: String?) {
+    fun makePostRequest() {
         viewModelScope.launch {
             try {
-                val result =
-                    ktorClient.putRequest(formData = mapOf("title" to name!!, "body" to body!!), {
-                        _postResponse.value = it
-                    })
-//                _postResponse.value = result
-                Log.w("KtorClient", "POST Response: $result")
+                ktorClient.putPostRequest {
+                    Log.d("KtorClient", "After Modification : $it")
+                    _postResponse.value = it
+                }
             } catch (e: Exception) {
                 Log.e("KtorClient", "VM: Error -> ${e.message}")
                 _postResponse.value = "Error: ${e.message}"
@@ -58,19 +60,19 @@ class MainViewModel(private val ktorClient: KtorClient) :
 
     fun retryApiLater() {
         ktorClient.registerNetworkCallback(
-            id = id.value,
-            title = name.value,
-            body = body.value, {
-
-                if (isGetApiCalled.value) {
-                    _getResponse.value = it
-                    isGetApiCalled.value = false
-                }
-                if (isPostApiCalled.value) {
-                    _postResponse.value = it
-                    isPostApiCalled.value = false
-                }
+            id = vmId.value,
+            title = vmTitle.value,
+            body = vmB.value
+        ) {
+            Log.d("KtorClient","VM Param: ${vmTitle.value} - ${vmB.value}")
+            if (isGetApiCalled.value) {
+                _getResponse.value = it
+                isGetApiCalled.value = false
             }
-        )
+            if (isPostApiCalled.value) {
+                _postResponse.value = it
+                isPostApiCalled.value = false
+            }
+        }
     }
 }

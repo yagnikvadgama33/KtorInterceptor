@@ -1,5 +1,7 @@
 package com.example.ktorinterceptor.screen
 
+import android.content.Context
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -79,6 +81,8 @@ class MainActivity : ComponentActivity() {
         val connection by connectivityState()
         val connectionsAvailable = connection == ConnectionState.Available
         val isEnabled = true
+        val sharedPreferences: SharedPreferences =
+            this.getSharedPreferences("api_prefs", Context.MODE_PRIVATE)
 
         var id by remember { mutableStateOf(TextFieldValue("")) }
         var name by remember { mutableStateOf(TextFieldValue("")) }
@@ -98,7 +102,6 @@ class MainActivity : ComponentActivity() {
             CustomTextField(
                 value = id,
                 onValueChange = {
-                    viewModel.id.value = it.text.trim()
                     id = it
                 },
                 placeholder = stringResource(R.string.enter_post_id),
@@ -121,12 +124,12 @@ class MainActivity : ComponentActivity() {
                         }
 
                         else -> {
-//                            if (connectionsAvailable) {
-                            viewModel.fetchData(id.text.trim())
-                            viewModel.isGetApiCalled.value = true
-//                            } else {
-//                                viewModel.isGetApiCalled.value = true
-//                            }
+                            sharedPreferences.edit().putString("set_id", id.text)
+                                .apply()
+                            viewModel.apply {
+                                fetchData()
+                                isGetApiCalled.value = true
+                            }
                         }
                     }
                 },
@@ -156,7 +159,6 @@ class MainActivity : ComponentActivity() {
                 CustomTextField(
                     value = name,
                     onValueChange = {
-                        viewModel.name.value = it.text.trim()
                         name = it
                     },
                     placeholder = stringResource(R.string.title),
@@ -170,7 +172,6 @@ class MainActivity : ComponentActivity() {
                 CustomTextField(
                     value = body,
                     onValueChange = {
-                        viewModel.body.value = it.text.trim()
                         body = it
                     },
                     placeholder = stringResource(R.string.body),
@@ -195,11 +196,16 @@ class MainActivity : ComponentActivity() {
                         }
 
                         else -> {
-                            viewModel.makePostRequest(
-                                name = name.text.trim(),
-                                body = body.text.trim()
-                            )
-                            viewModel.isPostApiCalled.value = true
+                                sharedPreferences.edit().apply {
+                                    putString("set_title", name.text)
+                                        .apply()
+                                    putString("set_body", body.text)
+                                        .apply()
+                                }
+                            viewModel.apply {
+                                makePostRequest()
+                                isPostApiCalled.value = true
+                            }
                         }
                     }
                 },
@@ -267,24 +273,6 @@ class MainActivity : ComponentActivity() {
             Text(text = text)
         }
     }
-
-//    private fun checkForRetryApi(viewModel: MainViewModel) {
-//        when {
-//            viewModel.isGetApiCalled.value -> {
-//                viewModel.retryApiLater(id = viewModel.id.value)
-//                viewModel.isGetApiCalled.value = false
-//            }
-//
-//            viewModel.isPutApiCalled.value -> {
-//
-//                viewModel.retryApiLater(
-//                    title = viewModel.name.value,
-//                    body = viewModel.body.value
-//                )
-//                viewModel.isPutApiCalled.value = false
-//            }
-//        }
-//    }
 }
 
 

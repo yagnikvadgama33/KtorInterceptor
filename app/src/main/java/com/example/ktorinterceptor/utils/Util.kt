@@ -7,3 +7,5 @@ fun Map<String, String>.formUrlEncode(): String {
 }
 
 fun String.urlEncode(): String = java.net.URLEncoder.encode(this, "UTF-8")
+
+fun String.replaceSpecialChar():String = this.replace("=",":").replace("&", ",")
