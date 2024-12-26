@@ -8,8 +8,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -93,6 +95,8 @@ class MainActivity : ComponentActivity() {
             modifier = Modifier
                 .padding(innerPadding)
                 .padding(horizontal = 12.dp)
+                .verticalScroll(state = rememberScrollState())
+                .navigationBarsPadding()
         ) {
 
             SectionHeader(title = stringResource(R.string.get_response))
@@ -196,12 +200,10 @@ class MainActivity : ComponentActivity() {
                         }
 
                         else -> {
-                                sharedPreferences.edit().apply {
-                                    putString("set_title", name.text)
-                                        .apply()
-                                    putString("set_body", body.text)
-                                        .apply()
-                                }
+                            sharedPreferences.edit().apply {
+                                putString("set_title", name.text).apply()
+                                putString("set_body", body.text).apply()
+                            }
                             viewModel.apply {
                                 makePostRequest()
                                 isPostApiCalled.value = true

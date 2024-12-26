@@ -35,8 +35,7 @@ import java.util.LinkedList
 
 class KtorClient(private val context: Context) {
 
-    private val sharedPreferences: SharedPreferences =
-        context.getSharedPreferences("api_prefs", Context.MODE_PRIVATE)
+    private val sharedPreferences: SharedPreferences = context.getSharedPreferences("api_prefs", Context.MODE_PRIVATE)
     private val failedRequestQueue = LinkedList<String>()
 
     private val client = HttpClient(OkHttp) {
